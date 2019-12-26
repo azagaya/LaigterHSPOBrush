@@ -389,3 +389,7 @@ void HSPOBrush::updateBrushSprite(){
   QPainter p(&brushSprite);
   drawAt(QPoint(radius,radius), &p, alpha);
 }
+
+QObject * HSPOBrush::getObject(){
+  return this;
+}
