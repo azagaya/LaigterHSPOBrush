@@ -239,7 +239,7 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos){
   QRect r(QPoint(xmin-radius,ymin-radius),QPoint(xmax+radius,ymax+radius));
 
   QtConcurrent::run(m_processor,&ImageProcessor::calculate_specular);
-  QtConcurrent::run(m_processor,&ImageProcessor::generate_normal_map,true,true,true,r);
+  QtConcurrent::run(m_processor,&ImageProcessor::generate_normal_map,false,false,false,r);
 }
 
 void HSPOBrush::mousePress(const QPoint &pos){

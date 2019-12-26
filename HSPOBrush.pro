@@ -4,6 +4,7 @@ CONFIG       += plugin
 QT           += widgets
 INCLUDEPATH  += ../laigter/
 INCLUDEPATH  += ../laigter/src/
+DESTDIR       = /home/azagaya/.local/share/laigter/plugins/
 
 CONFIG += c++11
 
@@ -29,6 +30,9 @@ HEADERS += \
     ../laigter/src/imageprocessor.h \
     ../laigter/src/lightsource.h \
   hspobrushgui.h
+
+target.path = /home/azagaya/.local/share/laigter/plugins/
+INSTALLS += target
 
 CONFIG += install_ok  # Do not cargo-cult this!
 uikit: CONFIG += debug_and_release
