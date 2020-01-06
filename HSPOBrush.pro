@@ -20,16 +20,16 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+  hsopbrushgui.cpp \
     hspobrush.cpp \
     ../laigter/src/imageprocessor.cpp\
-    ../laigter/src/lightsource.cpp \
-  hspobrushgui.cpp
+    ../laigter/src/lightsource.cpp
 
 HEADERS += \
+  hsopbrushgui.h \
     hspobrush.h \
     ../laigter/src/imageprocessor.h \
-    ../laigter/src/lightsource.h \
-  hspobrushgui.h
+    ../laigter/src/lightsource.h
 
 target.path = /home/azagaya/.local/share/laigter/plugins/
 INSTALLS += target
@@ -58,5 +58,4 @@ win32: LIBS += C:\opencv-build\install\x64\mingw\bin\libopencv_imgcodecs320.dll
 win32: INCLUDEPATH += C:\opencv\build\include
 
 FORMS += \
-  formhspobrushgui.ui \
-  hspobrushgui.ui
+  hsopbrushgui.ui

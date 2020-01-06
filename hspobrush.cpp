@@ -4,11 +4,10 @@
 #include <QRadialGradient>
 #include <QtConcurrent/QtConcurrent>
 #include <QIcon>
+#include <QList>
 
 
-void HSPOBrush::updateOverlay(int xmin, int xmax, int ymin, int ymax){
-  QImage *overlay = m_processor->get_specular_overlay();
-
+QImage HSPOBrush::updateOverlay(int xmin, int xmax, int ymin, int ymax, QImage ov, QImage old, QImage aux){
   QPoint topLeft;
   QPoint botRight;
 
@@ -21,25 +20,25 @@ void HSPOBrush::updateOverlay(int xmin, int xmax, int ymin, int ymax){
   ymax += radius;
 
   ymin = ymin < 0 ? 0 : ymin;
-  ymin = ymin > overlay->height() ? overlay->height() : ymin;
+  ymin = ymin > ov.height() ? ov.height() : ymin;
   ymax = ymax < 0 ? 0 : ymax;
-  ymax = ymax > overlay->height() ? overlay->height() : ymax;
+  ymax = ymax > ov.height() ? ov.height() : ymax;
 
   xmin = xmin < 0 ? 0 : xmin;
-  xmin = xmin > overlay->width() ? overlay->width() : xmin;
+  xmin = xmin > ov.width() ? ov.width() : xmin;
   xmax = xmax < 0 ? 0 : xmax;
-  xmax = xmax > overlay->width() ? overlay->width() : xmax;
+  xmax = xmax > ov.width() ? ov.width() : xmax;
 
   for (int x = xmin; x < xmax; x++){
     for (int y =ymin; y < ymax; y++){
-      QColor oldColor = oldHeight.pixelColor(x,y);
-      QColor auxColor = auxHeight.pixelColor(x,y);
+      QColor oldColor = old.pixelColor(x,y);
+      QColor auxColor = aux.pixelColor(x,y);
+      //      auxColor.setAlphaF(auxColor.alphaF()*auxOv.pixelColor(x,y).redF());
       QColor newColor(0,0,0,0);
 
       if (auxColor.alphaF() <= 1e-6 || m_processor->get_texture()->pixelColor(x,y).alphaF() == 0){
         newColor = oldColor;
       } else {
-
         float outA = alpha*auxColor.alphaF()+oldColor.alphaF()*(1-alpha*auxColor.alphaF());
         int r = auxColor.red()*alpha*auxColor.alphaF()/outA+oldColor.red()*oldColor.alphaF()*(1-alpha*auxColor.alphaF())/outA;
 
@@ -52,24 +51,44 @@ void HSPOBrush::updateOverlay(int xmin, int xmax, int ymin, int ymax){
 
       }
 
-      overlay->setPixelColor(x,y,newColor);
+      ov.setPixelColor(x,y,newColor);
     }
   }
+  return ov;
 }
 
-void HSPOBrush::drawAt(QPoint point, QPainter *p, float alpha_mod){
+void HSPOBrush::drawAt(QPoint point, QPainter *p, float alpha_mod, bool invert){
   QRadialGradient gradient(point, radius);
-  gradient.setColorAt(0,QColor(maxV,maxV,maxV,1.0*255));
-  for (int i=1; i<=100; i++){
-    float x = i/100.0;
-    gradient.setColorAt(x,QColor(maxV,maxV,maxV,(-sqrt(1-(x-1)*(x-1))+1)*255*((1-x)+x*hardness)));
+  if (p->device() == (QPaintDevice *) &auxParallax){
+    invert = true;
+  } else {
+    invert = false;
+  }
+  if (!invert){
+    gradient.setColorAt(0,QColor(maxV,maxV,maxV,1.0*255));
+    for (int i=1; i<=100; i++){
+      float x = i/100.0;
+      gradient.setColorAt(x,QColor(maxV,maxV,maxV,(-sqrt(1-(x-1)*(x-1))+1)*255*((1-x)+x*hardness)));
+    }
+  } else {
+    gradient.setColorAt(0,QColor(255-maxV,255-maxV,255-maxV,1.0*255));
+    for (int i=1; i<=100; i++){
+      float x = i/100.0;
+      gradient.setColorAt(x,QColor(255-maxV,255-maxV,255-maxV,(-sqrt(1-(x-1)*(x-1))+1)*255*((1-x)+x*hardness)));
+    }
   }
 
   QBrush brush(gradient);
+  QPainter g(&auxOv);
+  g.setPen(QPen(brush, radius, Qt::SolidLine, Qt::RoundCap,
+                Qt::MiterJoin));
+  g.drawEllipse(point.x()-radius/2,point.y()-radius/2,radius,radius);
+
   p->setPen(QPen(brush, radius, Qt::SolidLine, Qt::RoundCap,
                  Qt::MiterJoin));
 
   p->drawEllipse(point.x()-radius/2,point.y()-radius/2,radius,radius);
+
 
 }
 
@@ -98,70 +117,25 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos){
 
   if (brushSelected){
 
-    QRect rect = m_processor->get_texture()->rect();
+    QList <QImage*> imageList;
+    imageList.append(&auxHeight);
+    imageList.append(&auxParallax);
 
-    QPainter p(&auxHeight);
+    foreach(QImage *aux, imageList){
 
-    if (!linesSelected){
-      QRadialGradient gradient(fi, radius);
-      gradient.setColorAt(0,QColor(maxV,maxV,maxV,1.0*255));
-      gradient.setColorAt(1,QColor(maxV,maxV,maxV,hardness*255));
-      QBrush brush(gradient);
-      p.setRenderHint(QPainter::Antialiasing, true);
-      if (brushSelected)
-        p.setPen(QPen(brush, radius, Qt::SolidLine, Qt::RoundCap,
-                      Qt::MiterJoin));
+      QPainter p(aux);
 
-      QPoint point(fi.x(), fi.y());
+      if (!linesSelected){
+        QRadialGradient gradient(fi, radius);
+        gradient.setColorAt(0,QColor(maxV,maxV,maxV,1.0*255));
+        gradient.setColorAt(1,QColor(maxV,maxV,maxV,hardness*255));
+        QBrush brush(gradient);
+        p.setRenderHint(QPainter::Antialiasing, true);
+        if (brushSelected)
+          p.setPen(QPen(brush, radius, Qt::SolidLine, Qt::RoundCap,
+                        Qt::MiterJoin));
 
-      if (tilex){
-        point.setX(point.x() % w);
-        xmin = std::min(xmin,point.x());
-        xmax = std::max(xmax,point.x());
-      }
-      if (tiley){
-        point.setY(point.y() % h);
-        ymin = std::min(ymin,point.y());
-        ymax = std::max(ymax,point.y());
-      }
-
-      if (tilex){
-        if (point.x() + radius >= w){
-          drawAt(QPoint(point.x()-w,point.y()),&p);
-          xmax = w;
-          xmin = 0;
-        } else if (point.x() - radius <= 0){
-          drawAt(QPoint(point.x() + w, point.y()), &p);
-          xmax = w;
-          xmin = 0;
-        }
-      }
-
-      if (tiley){
-        if (point.y() + radius >= h){
-          drawAt(QPoint(point.x(),point.y()-h),&p);
-          ymax = h;
-          ymin = 0;
-        } else if (point.y() - radius <= 0){
-          drawAt(QPoint(point.x(), point.y()+h), &p);
-          ymax = h;
-          ymin = 0;
-        }
-      }
-
-      drawAt(point, &p);
-    }else{
-
-      QPainterPath path;
-      path.moveTo(in);
-      path.lineTo(fi);
-      qreal length = path.length();
-      qreal pos = 0;
-
-
-      while (pos < length) {
-        qreal percent = path.percentAtLength(pos);
-        QPoint point = path.pointAtPercent(percent).toPoint();
+        QPoint point(fi.x(), fi.y());
 
         if (tilex){
           point.setX(point.x() % w);
@@ -183,7 +157,6 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos){
             drawAt(QPoint(point.x() + w, point.y()), &p);
             xmax = w;
             xmin = 0;
-
           }
         }
 
@@ -199,12 +172,65 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos){
           }
         }
 
-        drawAt(point,&p);
-        pos += radius/4.0;
+        drawAt(point, &p);
+      }else{
+
+        QPainterPath path;
+        path.moveTo(in);
+        path.lineTo(fi);
+        qreal length = path.length();
+        qreal pos = 0;
+
+
+        while (pos < length) {
+          qreal percent = path.percentAtLength(pos);
+          QPoint point = path.pointAtPercent(percent).toPoint();
+
+          if (tilex){
+            point.setX(point.x() % w);
+            xmin = std::min(xmin,point.x());
+            xmax = std::max(xmax,point.x());
+          }
+          if (tiley){
+            point.setY(point.y() % h);
+            ymin = std::min(ymin,point.y());
+            ymax = std::max(ymax,point.y());
+          }
+
+          if (tilex){
+            if (point.x() + radius >= w){
+              drawAt(QPoint(point.x()-w,point.y()),&p);
+              xmax = w;
+              xmin = 0;
+            } else if (point.x() - radius <= 0){
+              drawAt(QPoint(point.x() + w, point.y()), &p);
+              xmax = w;
+              xmin = 0;
+
+            }
+          }
+
+          if (tiley){
+            if (point.y() + radius >= h){
+              drawAt(QPoint(point.x(),point.y()-h),&p);
+              ymax = h;
+              ymin = 0;
+            } else if (point.y() - radius <= 0){
+              drawAt(QPoint(point.x(), point.y()+h), &p);
+              ymax = h;
+              ymin = 0;
+            }
+          }
+
+          drawAt(point,&p);
+          pos += radius/4.0;
+        }
       }
     }
 
-    updateOverlay(xmin,xmax, ymin, ymax);
+
+    m_processor->set_heightmap_overlay(updateOverlay(xmin,xmax, ymin, ymax, m_processor->get_heightmap_overlay(), oldHeight, auxHeight));
+    m_processor->set_parallax_overlay(updateOverlay(xmin,xmax, ymin, ymax, m_processor->get_parallax_overlay(), oldParallax, auxParallax));
 
   } else {
     QImage *overlay = m_processor->get_specular_overlay();
@@ -238,21 +264,24 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos){
 
   QRect r(QPoint(xmin-radius,ymin-radius),QPoint(xmax+radius,ymax+radius));
 
-  QtConcurrent::run(m_processor,&ImageProcessor::calculate_specular);
+  //  QtConcurrent::run(m_processor,&ImageProcessor::calculate_specular);
+  QtConcurrent::run(m_processor,&ImageProcessor::calculate_parallax);
   QtConcurrent::run(m_processor,&ImageProcessor::generate_normal_map,false,false,false,r);
 }
 
 void HSPOBrush::mousePress(const QPoint &pos){
   m_processor = *processorPtr;
-  QImage *overlay = m_processor->get_specular_overlay();
-  oldHeight = QImage(overlay->width(),overlay->height(),QImage::Format_RGBA8888_Premultiplied);
-  oldHeight = *overlay;
-  auxHeight = QImage(oldHeight.width(), oldHeight.height(), QImage::Format_RGBA8888_Premultiplied);
-  auxHeight.fill(QColor(255,255,255,0));
 
-  /* Draw the point */
-  QPoint fi(pos);
-  QPainter p(&auxHeight);
+  oldHeight = m_processor->get_heightmap_overlay();
+  auxHeight = QImage(oldHeight.width(), oldHeight.height(), QImage::Format_RGBA8888_Premultiplied);
+  auxHeight.fill(QColor(0,0,0,0));
+
+  oldParallax = m_processor->get_parallax_overlay();
+  auxParallax = QImage(oldParallax.width(), oldParallax.height(), QImage::Format_RGBA8888_Premultiplied);
+  auxParallax.fill(QColor(0,0,0,0));
+
+  auxOv = QImage(oldParallax.width(), oldParallax.height(), QImage::Format_RGBA8888_Premultiplied);
+  auxOv.fill(QColor(0,0,0,0));
 
   int w = m_processor->get_texture()->width();
   int h = m_processor->get_texture()->height();
@@ -260,46 +289,63 @@ void HSPOBrush::mousePress(const QPoint &pos){
   bool tilex = m_processor->get_tile_x();
   bool tiley = m_processor->get_tile_y();
 
-  QRadialGradient gradient(fi, radius);
-  gradient.setColorAt(0,QColor(maxV,maxV,maxV,1*255));
-  gradient.setColorAt(1,QColor(maxV,maxV,maxV,hardness*255));
+  QList <QImage *> imageList;
 
-  QBrush brush(gradient);
-  p.setRenderHint(QPainter::Antialiasing, true);
-  if (brushSelected)
-    p.setPen(QPen(brush, radius, Qt::SolidLine, Qt::RoundCap,
-                  Qt::MiterJoin));
+  imageList.append(&auxHeight);
+  imageList.append(&auxParallax);
 
-  QPoint point(fi.x(), fi.y());
+  QPoint fi(pos);
 
-  if (tilex){
-    point.setX(point.x() % w);
-  }
-  if (tiley){
-    point.setY(point.y() % h);
-  }
+  foreach(QImage *aux, imageList)
 
-  if (tilex){
-    if (point.x() + radius >= w){
-      drawAt(QPoint(point.x()-w,point.y()),&p);
-    } else if (point.x() - radius <= 0){
-      drawAt(QPoint(point.x() + w, point.y()), &p);
+  {
+    /* Draw the point */
+    QPainter p(aux);
+
+    QRadialGradient gradient(fi, radius);
+    gradient.setColorAt(0,QColor(maxV,maxV,maxV,1*255));
+    gradient.setColorAt(1,QColor(maxV,maxV,maxV,hardness*255));
+
+    QBrush brush(gradient);
+    p.setRenderHint(QPainter::Antialiasing, true);
+    if (brushSelected)
+      p.setPen(QPen(brush, radius, Qt::SolidLine, Qt::RoundCap,
+                    Qt::MiterJoin));
+
+    QPoint point(fi.x(), fi.y());
+
+    if (tilex){
+      point.setX(point.x() % w);
     }
-  }
-
-  if (tiley){
-    if (point.y() + radius >= h){
-      drawAt(QPoint(point.x(),point.y()-h),&p);
-    } else if (point.y() - radius <= 0){
-      drawAt(QPoint(point.x(), point.y()+h), &p);
+    if (tiley){
+      point.setY(point.y() % h);
     }
-  }
 
-  drawAt(point, &p);
-  updateOverlay(fi.x()-radius, fi.x()+radius, fi.y()-radius, fi.y()+radius);
+    if (tilex){
+      if (point.x() + radius >= w){
+        drawAt(QPoint(point.x()-w,point.y()),&p);
+      } else if (point.x() - radius <= 0){
+        drawAt(QPoint(point.x() + w, point.y()), &p);
+      }
+    }
+
+    if (tiley){
+      if (point.y() + radius >= h){
+        drawAt(QPoint(point.x(),point.y()-h),&p);
+      } else if (point.y() - radius <= 0){
+        drawAt(QPoint(point.x(), point.y()+h), &p);
+      }
+    }
+
+    drawAt(point, &p);
+
+  }
+  int xmin = fi.x()-radius, xmax = fi.x()+radius, ymin = fi.y()-radius, ymax = fi.y()+radius;
+  m_processor->set_heightmap_overlay(updateOverlay(xmin,xmax, ymin, ymax, m_processor->get_heightmap_overlay(), oldHeight, auxHeight));
+  m_processor->set_parallax_overlay(updateOverlay(xmin,xmax, ymin, ymax, m_processor->get_parallax_overlay(), oldParallax, auxParallax));
 
   QRect r(QPoint(fi.x()-radius,fi.y()-radius),QPoint(fi.x()+radius,fi.y()+radius));
-
+  QtConcurrent::run(m_processor,&ImageProcessor::calculate_parallax);
   QtConcurrent::run(m_processor,&ImageProcessor::generate_normal_map,false,false,false,r);
 }
 
@@ -314,7 +360,10 @@ void HSPOBrush::setProcessor(ImageProcessor **processor){
 
 QWidget *HSPOBrush::loadGUI(QWidget *parent){
   radius = 15;
-  gui = new HSPOBrushGui(parent);
+  gui = new HSOPBrushGui(parent);
+  connect(gui,SIGNAL(selected_changed(bool)),this,SLOT(set_lineSelected(bool)));
+  connect(this,SIGNAL(brush_sprite_updated(QImage)),gui,SLOT(brush_sprite_updated(QImage)));
+  connect(gui,SIGNAL(size_changed(int)),this,SLOT(set_radius(int)));
   updateBrushSprite();
   return gui;
 }
@@ -346,6 +395,7 @@ void HSPOBrush::set_mix(int m){
 
 void HSPOBrush::set_lineSelected(bool l){
   linesSelected = l;
+  set_selected(l);
 }
 
 void HSPOBrush::set_eraserSelected(bool e){
@@ -374,9 +424,14 @@ bool HSPOBrush::get_selected(){
 
 void HSPOBrush::set_selected(bool s){
   selected = s;
-//  if (!s){
-//    gui->unselect_all();
-//  }
+  if (s){
+    selected_changed(this);
+  } else {
+    // TODO uncheck button
+  }
+  //  if (!s){
+  //    gui->unselect_all();
+  //  }
 }
 
 QImage HSPOBrush::getBrushSprite(){
@@ -388,6 +443,7 @@ void HSPOBrush::updateBrushSprite(){
   brushSprite.fill(0.0);
   QPainter p(&brushSprite);
   drawAt(QPoint(radius,radius), &p, alpha);
+  brush_sprite_updated(brushSprite);
 }
 
 QObject * HSPOBrush::getObject(){

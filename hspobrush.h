@@ -1,7 +1,7 @@
 #ifndef HSPOBRUSH_H
 #define HSPOBRUSH_H
 
-#include "hspobrushgui.h"
+#include "hsopbrushgui.h"
 
 #include <QWidget>
 #include <brushinterface.h>
@@ -23,12 +23,13 @@ class HSPOBrush : public QObject, public BrushInterface
   QIcon getIcon() override;
   QString getName() override;
   QImage getBrushSprite() override;
-  void drawAt(QPoint point, QPainter *p, float alpha_mod = 1.0);
-  void updateOverlay(int xmin, int xmax, int ymin, int ymax);
+  void drawAt(QPoint point, QPainter *p, float alpha_mod = 1.0, bool invert = true);
+  QImage updateOverlay(int xmin, int xmax, int ymin, int ymax, QImage ov, QImage old, QImage aux);
   void updateBrushSprite();
   QObject * getObject() override;
   signals:
   void selected_changed(BrushInterface *brush);
+  void brush_sprite_updated(QImage sprite);
 
   public slots:
   void set_radius(int r);
@@ -45,9 +46,10 @@ class HSPOBrush : public QObject, public BrushInterface
   QImage *m_specular, auxSpecular, oldSpecular;
   QImage *m_parallax, auxParallax, oldParallax;
   QImage *m_occlussion, auxOcclussion, oldOcclussion;
-  HSPOBrushGui *gui;
+  QImage auxOv;
+  HSOPBrushGui *gui;
   QImage brushSprite;
-  int radius = 20;
+  int radius = 15;
   int maxV = 255, minV = 0;
   ImageProcessor **processorPtr;
   ImageProcessor *m_processor;
