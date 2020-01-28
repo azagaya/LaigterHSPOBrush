@@ -59,3 +59,6 @@ win32: INCLUDEPATH += C:\opencv\build\include
 
 FORMS += \
   hsopbrushgui.ui
+
+RESOURCES += \
+  icons.qrc

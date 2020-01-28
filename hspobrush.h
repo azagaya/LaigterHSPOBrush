@@ -6,6 +6,15 @@
 #include <QWidget>
 #include <brushinterface.h>
 #include <imageprocessor.h>
+class Overlay {
+  public:
+  Overlay(QImage *o, int c){
+    ov = o;
+    color = c;
+  }
+  QImage *ov;
+  int color;
+};
 
 class HSPOBrush : public QObject, public BrushInterface
 {
@@ -40,6 +49,10 @@ class HSPOBrush : public QObject, public BrushInterface
   void set_lineSelected(bool l);
   void set_eraserSelected(bool e);
   void set_brushSelected(bool b);
+  void set_height(int heigt);
+  void set_specular(int s);
+  void set_parallax(int p);
+  void set_occlussion(int o);
 
   private:
   QImage *m_heightmap, auxHeight, oldHeight;
@@ -50,10 +63,10 @@ class HSPOBrush : public QObject, public BrushInterface
   HSOPBrushGui *gui;
   QImage brushSprite;
   int radius = 15;
-  int maxV = 255, minV = 0;
+  int maxV = 128, minV = 0, height = 128, spec = 255, occ = 0, parallax = 128;
   ImageProcessor **processorPtr;
   ImageProcessor *m_processor;
-  float alpha = 1.0;
+  float alpha = 0.5;
   float hardness = 0;
 
   bool linesSelected = true, brushSelected = true, eraserSelected = false, selected = true;
