@@ -59,19 +59,22 @@ QImage HSPOBrush::updateOverlay(int xmin, int xmax, int ymin, int ymax, QImage o
 
 void HSPOBrush::drawAt(QPoint point, QPainter *p, float alpha_mod, bool invert){
   QRadialGradient gradient(point, radius);
-//  if (p->device() == (QPaintDevice *) &auxParallax){
-//    invert = true;
-//  } else {
-//    invert = false;
-//  }
+  //  if (p->device() == (QPaintDevice *) &auxParallax){
+  //    invert = true;
+  //  } else {
+  //    invert = false;
+  //  }
   invert = false;
   if (!invert){
     gradient.setColorAt(0,QColor(maxV,maxV,maxV,1.0*255));
     gradient.setColorAt(hardness,QColor(maxV,maxV,maxV,1.0*255));
     for (int i=100*(hardness+0.05); i<=100; i++){
       float x = i/100.0;
-      //      gradient.setColorAt(x,QColor(maxV,maxV,maxV,(sqrt(1-(x-hardness)*(x-hardness)/(1.1-hardness)/(1.1-hardness)))*255));
-      gradient.setColorAt(x,QColor(maxV,maxV,maxV,(-sqrt(1-(x-1)*(x-1)/(1.1-hardness)/(1.1-hardness))+1)*255));
+      if (gui->get_button_rounded()){
+        gradient.setColorAt(x,QColor(maxV,maxV,maxV,(sqrt(1-(x-hardness)*(x-hardness)/(1-hardness)/(1-hardness)))*255));
+      } else if (gui->get_button_peak()){
+        gradient.setColorAt(x,QColor(maxV,maxV,maxV,(-sqrt(1-(x-1)*(x-1)/(1-hardness)/(1-hardness))+1)*255));
+      }
 
     }
     gradient.setColorAt(1.1,QColor(maxV,maxV,maxV,0.0*255));
@@ -110,20 +113,21 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos){
   int ymin = std::min(in.y(),fi.y());
   int ymax = std::max(in.y(),fi.y());
 
-  if (brushSelected){
+
+  if (!gui->get_button_eraser()){
 
     QList <Overlay> imageList;
     if (gui->get_height_enabled()){
-      imageList.append(Overlay(&auxHeight,height));
+      imageList.append(Overlay(&auxHeight,height,"height"));
     }
     if (gui->get_parallax_enabled()){
-      imageList.append(Overlay(&auxParallax,parallax));
+      imageList.append(Overlay(&auxParallax,parallax,"parallax"));
     }
     if (gui->get_specular_enabled()){
-      imageList.append(Overlay(&auxSpecular,spec));
+      imageList.append(Overlay(&auxSpecular,spec,"specular"));
     }
     if (gui->get_occlussion_enabled()){
-      imageList.append(Overlay(&auxOcclussion,occ));
+      imageList.append(Overlay(&auxOcclussion,occ,"occlussion"));
     }
 
     foreach(Overlay overlay, imageList){
@@ -245,24 +249,51 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos){
       m_processor->set_occlussion_overlay(updateOverlay(xmin,xmax,ymin,ymax,m_processor->get_occlusion_overlay(), oldOcclussion, auxOcclussion));
   } else {
     //TODO
-    //    QImage *overlay = m_processor->get_specular_overlay();
-    //    QPainter p(&auxHeight);
-    //    QPen pen(QColor(1,1,1,1));
-    //    pen.setWidth(2*radius);
-    //    pen.setStyle(Qt::SolidLine);
-    //    pen.setCapStyle(Qt::RoundCap);
-    //    pen.setJoinStyle(Qt::MiterJoin);
-    //    p.setPen(pen);
-    //    p.setRenderHint(QPainter::Antialiasing, true);
-    //    p.drawLine(in,fi);
+    QImage erased(auxHeight.size(),QImage::Format_RGBA8888_Premultiplied);
+    erased.fill(QColor(0,0,0,0));
+    QPainter p(&erased);
 
-    //    for (int x=0; x < overlay->width(); x++){
-    //      for (int y=0; y < overlay->height(); y++){
-    //        if (auxHeight.pixelColor(x,y).alphaF() != 0){
-    //          overlay->setPixelColor(x,y,QColor(0,0,0,0));
-    //        }
-    //      }
-    //    }
+    QPen pen(QColor(1,1,1,1));
+    pen.setWidth(2*radius);
+    pen.setStyle(Qt::SolidLine);
+    pen.setCapStyle(Qt::RoundCap);
+    pen.setJoinStyle(Qt::MiterJoin);
+    p.setPen(pen);
+    p.setRenderHint(QPainter::Antialiasing, true);
+    p.drawLine(in,fi);
+
+    QList <Overlay> imageList;
+    if (gui->get_height_enabled()){
+      imageList.append(Overlay(&oldHeight,height,"height"));
+    }
+    if (gui->get_parallax_enabled()){
+      imageList.append(Overlay(&oldParallax,parallax,"parallax"));
+    }
+    if (gui->get_specular_enabled()){
+      imageList.append(Overlay(&oldSpecular,spec,"specular"));
+    }
+    if (gui->get_occlussion_enabled()){
+      imageList.append(Overlay(&oldOcclussion,occ,"occlussion"));
+    }
+    foreach(Overlay ov, imageList){
+      QImage *overlay = ov.ov;
+      for (int x=0; x < overlay->width(); x++){
+        for (int y=0; y < overlay->height(); y++){
+          if (erased.pixelColor(x,y).alphaF() != 0){
+            overlay->setPixelColor(x,y,QColor(0,0,0,0));
+          }
+        }
+      }
+      if (ov.type == "height"){
+        m_processor->set_heightmap_overlay(*overlay);
+      } else if (ov.type == "parallax"){
+        m_processor->set_parallax_overlay(*overlay);
+      } else if (ov.type == "specular") {
+        m_processor->set_specular_overlay(*overlay);
+      } else if (ov.type == "occlussion"){
+        m_processor->set_occlussion_overlay(*overlay);
+      }
+    }
 
   }
   //}
@@ -307,18 +338,20 @@ void HSPOBrush::mousePress(const QPoint &pos){
   bool tilex = m_processor->get_tile_x();
   bool tiley = m_processor->get_tile_y();
 
+
+  if (!gui->get_button_eraser()){
   QList <Overlay> imageList;
   if (gui->get_height_enabled()){
-    imageList.append(Overlay(&auxHeight,height));
+    imageList.append(Overlay(&auxHeight,height,"height"));
   }
   if (gui->get_parallax_enabled()){
-    imageList.append(Overlay(&auxParallax,parallax));
+    imageList.append(Overlay(&auxParallax,parallax,"parallax"));
   }
   if (gui->get_specular_enabled()){
-    imageList.append(Overlay(&auxSpecular,spec));
+    imageList.append(Overlay(&auxSpecular,spec,"specular"));
   }
   if (gui->get_occlussion_enabled()){
-    imageList.append(Overlay(&auxOcclussion,occ));
+    imageList.append(Overlay(&auxOcclussion,occ,"occlussion"));
   }
 
   QPoint fi(pos);
@@ -381,8 +414,11 @@ void HSPOBrush::mousePress(const QPoint &pos){
     m_processor->set_occlussion_overlay(updateOverlay(xmin,xmax,ymin,ymax,m_processor->get_occlusion_overlay(), oldOcclussion, auxOcclussion));
 
   QRect r(QPoint(xmin, ymin),QPoint(xmax, ymax));
+  QtConcurrent::run(m_processor,&ImageProcessor::calculate_specular);
   QtConcurrent::run(m_processor,&ImageProcessor::calculate_parallax);
+  QtConcurrent::run(m_processor,&ImageProcessor::calculate_occlusion);
   QtConcurrent::run(m_processor,&ImageProcessor::generate_normal_map,false,false,false,r);
+  }
 }
 
 void HSPOBrush::mouseRelease(const QPoint &pos){
@@ -457,6 +493,7 @@ void HSPOBrush::set_mix(int m){
 void HSPOBrush::set_lineSelected(bool l){
   linesSelected = l;
   set_selected(l);
+  updateBrushSprite();
 }
 
 void HSPOBrush::set_eraserSelected(bool e){
@@ -503,7 +540,7 @@ void HSPOBrush::updateBrushSprite(){
   brushSprite = QImage(2*radius,2*radius,QImage::Format_RGBA8888);
   brushSprite.fill(0.0);
   QPainter p(&brushSprite);
-
+  maxV = 255;
   drawAt(QPoint(radius,radius), &p, alpha);
 
   brush_sprite_updated(brushSprite);

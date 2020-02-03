@@ -31,11 +31,12 @@ class HSOPBrushGui : public QWidget
       bool get_parallax_enabled();
       bool get_specular_enabled();
       bool get_occlussion_enabled();
+      bool get_button_rounded();
+      bool get_button_peak();
+      bool get_button_eraser();
+      void unselect_all();
 
   private slots:
-  void on_SelectButton_clicked();
-
-  void on_SelectButton_toggled(bool checked);
 
   void on_sizeSlider_valueChanged(int value);
 
@@ -50,6 +51,12 @@ class HSOPBrushGui : public QWidget
   void on_sliderOcclussion_valueChanged(int value);
 
   void on_sliderParallax_valueChanged(int value);
+
+  void on_buttonRounded_toggled(bool checked);
+
+  void on_buttonPeak_toggled(bool checked);
+
+  void on_buttonEraser_toggled(bool checked);
 
   private:
   Ui::HSOPBrushGui *ui;

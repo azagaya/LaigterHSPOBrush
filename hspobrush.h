@@ -8,12 +8,14 @@
 #include <imageprocessor.h>
 class Overlay {
   public:
-  Overlay(QImage *o, int c){
+  Overlay(QImage *o, int c, QString t){
     ov = o;
     color = c;
+    type = t;
   }
   QImage *ov;
   int color;
+  QString type;
 };
 
 class HSPOBrush : public QObject, public BrushInterface

@@ -14,15 +14,7 @@ HSOPBrushGui::~HSOPBrushGui()
   delete ui;
 }
 
-void HSOPBrushGui::on_SelectButton_clicked()
-{
 
-}
-
-void HSOPBrushGui::on_SelectButton_toggled(bool checked)
-{
-  selected_changed(checked);
-}
 
 bool HSOPBrushGui::get_height_enabled(){
   return ui->checkBoxNormal->isChecked();
@@ -87,4 +79,47 @@ void HSOPBrushGui::on_sliderOcclussion_valueChanged(int value)
 void HSOPBrushGui::on_sliderParallax_valueChanged(int value)
 {
   parallax_changed(value);
+}
+
+void HSOPBrushGui::unselect_all(){
+  ui->buttonPeak->setChecked(false);
+  ui->buttonRounded->setChecked(false);
+  ui->buttonEraser->setChecked(false);
+}
+
+void HSOPBrushGui::on_buttonRounded_toggled(bool checked)
+{
+  if (checked){
+    ui->buttonPeak->setChecked(false);
+    ui->buttonEraser->setChecked(false);
+  }
+  selected_changed(checked);
+}
+
+void HSOPBrushGui::on_buttonPeak_toggled(bool checked)
+{
+  if (checked){
+    ui->buttonRounded->setChecked(false);
+    ui->buttonEraser->setChecked(false);
+  }
+  selected_changed(checked);
+}
+
+void HSOPBrushGui::on_buttonEraser_toggled(bool checked)
+{
+  if (checked){
+    ui->buttonRounded->setChecked(false);
+    ui->buttonPeak->setChecked(false);
+  }
+  selected_changed(checked);
+}
+
+bool HSOPBrushGui::get_button_eraser(){
+  return ui->buttonEraser->isChecked();
+}
+bool HSOPBrushGui::get_button_rounded(){
+  return ui->buttonRounded->isChecked();
+}
+bool HSOPBrushGui::get_button_peak(){
+  return ui->buttonPeak->isChecked();
 }
