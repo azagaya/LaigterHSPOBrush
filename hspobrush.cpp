@@ -68,7 +68,7 @@ void HSPOBrush::drawAt(QPoint point, QPainter *p, float alpha_mod, bool invert){
   if (!invert){
     gradient.setColorAt(0,QColor(maxV,maxV,maxV,1.0*255));
     gradient.setColorAt(hardness,QColor(maxV,maxV,maxV,1.0*255));
-    for (int i=100*(hardness+0.05); i<=100; i++){
+    for (int i=100*(hardness); i<100; i++){
       float x = i/100.0;
       if (gui->get_button_rounded()){
         gradient.setColorAt(x,QColor(maxV,maxV,maxV,(sqrt(1-(x-hardness)*(x-hardness)/(1-hardness)/(1-hardness)))*255));
@@ -77,7 +77,7 @@ void HSPOBrush::drawAt(QPoint point, QPainter *p, float alpha_mod, bool invert){
       }
 
     }
-    gradient.setColorAt(1.1,QColor(maxV,maxV,maxV,0.0*255));
+    gradient.setColorAt(1,QColor(maxV,maxV,maxV,0.0));
   }
 
   QBrush brush(gradient);
@@ -248,7 +248,7 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos){
     if (gui->get_occlussion_enabled())
       m_processor->set_occlussion_overlay(updateOverlay(xmin,xmax,ymin,ymax,m_processor->get_occlusion_overlay(), oldOcclussion, auxOcclussion));
   } else {
-    //TODO
+    //TODO make it work in tiles
     QImage erased(auxHeight.size(),QImage::Format_RGBA8888_Premultiplied);
     erased.fill(QColor(0,0,0,0));
     QPainter p(&erased);
@@ -414,9 +414,9 @@ void HSPOBrush::mousePress(const QPoint &pos){
     m_processor->set_occlussion_overlay(updateOverlay(xmin,xmax,ymin,ymax,m_processor->get_occlusion_overlay(), oldOcclussion, auxOcclussion));
 
   QRect r(QPoint(xmin, ymin),QPoint(xmax, ymax));
-  QtConcurrent::run(m_processor,&ImageProcessor::calculate_specular);
-  QtConcurrent::run(m_processor,&ImageProcessor::calculate_parallax);
-  QtConcurrent::run(m_processor,&ImageProcessor::calculate_occlusion);
+//  QtConcurrent::run(m_processor,&ImageProcessor::calculate_specular);
+//  QtConcurrent::run(m_processor,&ImageProcessor::calculate_parallax);
+//  QtConcurrent::run(m_processor,&ImageProcessor::calculate_occlusion);
   QtConcurrent::run(m_processor,&ImageProcessor::generate_normal_map,false,false,false,r);
   }
 }
