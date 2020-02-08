@@ -21,7 +21,7 @@ class Overlay {
 class HSPOBrush : public QObject, public BrushInterface
 {
   Q_OBJECT
-  Q_PLUGIN_METADATA(IID "org.azagaya.laigter.plugins.BrushInterface")
+  Q_PLUGIN_METADATA(IID "org.azagaya.laigter.plugins.BrushInterface" FILE "metadata.json")
   Q_INTERFACES(BrushInterface)
   public:
   void mousePress(const QPoint &pos) override;

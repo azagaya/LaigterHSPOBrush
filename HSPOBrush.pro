@@ -62,3 +62,6 @@ FORMS += \
 
 RESOURCES += \
   icons.qrc
+
+DISTFILES += \
+  metadata.json
