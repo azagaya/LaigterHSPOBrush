@@ -463,7 +463,7 @@ void HSPOBrush::set_brushSelected(bool b){
 }
 
 QIcon HSPOBrush::getIcon(){
-  return QIcon(QPixmap(":/icons/icons/icon.png"));
+  return QIcon(QPixmap(":/icons/icon.png"));
 }
 
 QString HSPOBrush::getName(){

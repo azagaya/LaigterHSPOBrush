@@ -3,5 +3,6 @@
         <file>icons/eraser-icon.png</file>
         <file>icons/roundBrush.png</file>
         <file>icons/peakBrush.png</file>
+        <file>icons/icon.png</file>
     </qresource>
 </RCC>
