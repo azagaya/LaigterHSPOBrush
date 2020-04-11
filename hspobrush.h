@@ -4,8 +4,8 @@
 #include "hsopbrushgui.h"
 
 #include <QWidget>
-#include <brushinterface.h>
-#include <imageprocessor.h>
+#include <brush_interface.h>
+#include <image_processor.h>
 class Overlay {
   public:
   Overlay(QImage *o, int c, QString t){

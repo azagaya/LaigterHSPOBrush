@@ -22,14 +22,18 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
   hsopbrushgui.cpp \
     hspobrush.cpp \
-    ../laigter/src/imageprocessor.cpp\
-    ../laigter/src/lightsource.cpp
+    ../laigter/src/image_processor.cpp\
+    ../laigter/src/light_source.cpp\
+    ../laigter/src/sprite.cpp\
+    ../laigter/src/texture.cpp
 
 HEADERS += \
   hsopbrushgui.h \
     hspobrush.h \
-    ../laigter/src/imageprocessor.h \
-    ../laigter/src/lightsource.h
+    ../laigter/src/image_processor.h \
+    ../laigter/src/light_source.h\
+    ../laigter/src/sprite.h\
+    ../laigter/src/texture.h
 
 target.path = /home/azagaya/.local/share/laigter/plugins/
 INSTALLS += target

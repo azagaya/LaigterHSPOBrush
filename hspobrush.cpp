@@ -136,56 +136,56 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos){
       maxV = overlay.color;
       QPainter p(aux);
 
-        QPainterPath path;
-        path.moveTo(in);
-        path.lineTo(fi);
-        qreal length = path.length();
-        qreal pos = 0;
+      QPainterPath path;
+      path.moveTo(in);
+      path.lineTo(fi);
+      qreal length = path.length();
+      qreal pos = 0;
 
 
-        while (pos < length) {
-          qreal percent = path.percentAtLength(pos);
-          QPoint point = path.pointAtPercent(percent).toPoint();
+      while (pos < length) {
+        qreal percent = path.percentAtLength(pos);
+        QPoint point = path.pointAtPercent(percent).toPoint();
 
-          if (tilex){
-            point.setX(point.x() % w);
-            xmin = std::min(xmin,point.x());
-            xmax = std::max(xmax,point.x());
-          }
-          if (tiley){
-            point.setY(point.y() % h);
-            ymin = std::min(ymin,point.y());
-            ymax = std::max(ymax,point.y());
-          }
-
-          if (tilex){
-            if (point.x() + radius >= w){
-              drawAt(QPoint(point.x()-w,point.y()),&p);
-              xmax = w;
-              xmin = 0;
-            } else if (point.x() - radius <= 0){
-              drawAt(QPoint(point.x() + w, point.y()), &p);
-              xmax = w;
-              xmin = 0;
-
-            }
-          }
-
-          if (tiley){
-            if (point.y() + radius >= h){
-              drawAt(QPoint(point.x(),point.y()-h),&p);
-              ymax = h;
-              ymin = 0;
-            } else if (point.y() - radius <= 0){
-              drawAt(QPoint(point.x(), point.y()+h), &p);
-              ymax = h;
-              ymin = 0;
-            }
-          }
-
-          drawAt(point,&p);
-          pos += radius/4.0;
+        if (tilex){
+          point.setX(point.x() % w);
+          xmin = std::min(xmin,point.x());
+          xmax = std::max(xmax,point.x());
         }
+        if (tiley){
+          point.setY(point.y() % h);
+          ymin = std::min(ymin,point.y());
+          ymax = std::max(ymax,point.y());
+        }
+
+        if (tilex){
+          if (point.x() + radius >= w){
+            drawAt(QPoint(point.x()-w,point.y()),&p);
+            xmax = w;
+            xmin = 0;
+          } else if (point.x() - radius <= 0){
+            drawAt(QPoint(point.x() + w, point.y()), &p);
+            xmax = w;
+            xmin = 0;
+
+          }
+        }
+
+        if (tiley){
+          if (point.y() + radius >= h){
+            drawAt(QPoint(point.x(),point.y()-h),&p);
+            ymax = h;
+            ymin = 0;
+          } else if (point.y() - radius <= 0){
+            drawAt(QPoint(point.x(), point.y()+h), &p);
+            ymax = h;
+            ymin = 0;
+          }
+        }
+
+        drawAt(point,&p);
+        pos += radius/4.0;
+      }
 
     }
 
@@ -258,13 +258,14 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos){
   QRect r(QPoint(xmin-radius,ymin-radius),QPoint(xmax+radius,ymax+radius));
 
   if (gui->get_specular_enabled())
-  QtConcurrent::run(m_processor,&ImageProcessor::calculate_specular);
+    m_processor->calculate_specular();
+//    QtConcurrent::run(m_processor,&ImageProcessor::calculate_specular);
   if (gui->get_parallax_enabled())
-  QtConcurrent::run(m_processor,&ImageProcessor::calculate_parallax);
+    QtConcurrent::run(m_processor,&ImageProcessor::calculate_parallax);
   if(gui->get_occlussion_enabled())
-  QtConcurrent::run(m_processor,&ImageProcessor::calculate_occlusion);
+    QtConcurrent::run(m_processor,&ImageProcessor::calculate_occlusion);
   if (gui->get_height_enabled())
-  QtConcurrent::run(m_processor,&ImageProcessor::generate_normal_map,false,false,false,r);
+    QtConcurrent::run(m_processor,&ImageProcessor::generate_normal_map,false,false,false,r);
 }
 
 void HSPOBrush::mousePress(const QPoint &pos){
@@ -294,84 +295,84 @@ void HSPOBrush::mousePress(const QPoint &pos){
 
 
   if (!gui->get_button_eraser()){
-  QList <Overlay> imageList;
-  if (gui->get_height_enabled()){
-    imageList.append(Overlay(&auxHeight,height,"height"));
-  }
-  if (gui->get_parallax_enabled()){
-    imageList.append(Overlay(&auxParallax,parallax,"parallax"));
-  }
-  if (gui->get_specular_enabled()){
-    imageList.append(Overlay(&auxSpecular,spec,"specular"));
-  }
-  if (gui->get_occlussion_enabled()){
-    imageList.append(Overlay(&auxOcclussion,occ,"occlussion"));
-  }
-
-  QPoint fi(pos);
-  QPoint point;
-  foreach(Overlay overlay, imageList)
-
-  {
-    /* Draw the point */
-    QImage *aux = overlay.ov;
-    QPainter p(aux);
-    maxV = overlay.color;
-
-    QRadialGradient gradient(fi, radius);
-    gradient.setColorAt(0,QColor(maxV,maxV,maxV,1*255));
-    gradient.setColorAt(1,QColor(maxV,maxV,maxV,hardness*255));
-
-    QBrush brush(gradient);
-    p.setRenderHint(QPainter::Antialiasing, true);
-    if (brushSelected)
-      p.setPen(QPen(brush, radius, Qt::SolidLine, Qt::RoundCap,
-                    Qt::MiterJoin));
-
-    point = QPoint(fi.x(), fi.y());
-
-    if (tilex){
-      point.setX(point.x() % w);
+    QList <Overlay> imageList;
+    if (gui->get_height_enabled()){
+      imageList.append(Overlay(&auxHeight,height,"height"));
     }
-    if (tiley){
-      point.setY(point.y() % h);
+    if (gui->get_parallax_enabled()){
+      imageList.append(Overlay(&auxParallax,parallax,"parallax"));
+    }
+    if (gui->get_specular_enabled()){
+      imageList.append(Overlay(&auxSpecular,spec,"specular"));
+    }
+    if (gui->get_occlussion_enabled()){
+      imageList.append(Overlay(&auxOcclussion,occ,"occlussion"));
     }
 
-    if (tilex){
-      if (point.x() + radius >= w){
-        drawAt(QPoint(point.x()-w,point.y()),&p);
-      } else if (point.x() - radius <= 0){
-        drawAt(QPoint(point.x() + w, point.y()), &p);
+    QPoint fi(pos);
+    QPoint point;
+    foreach(Overlay overlay, imageList)
+
+    {
+      /* Draw the point */
+      QImage *aux = overlay.ov;
+      QPainter p(aux);
+      maxV = overlay.color;
+
+      QRadialGradient gradient(fi, radius);
+      gradient.setColorAt(0,QColor(maxV,maxV,maxV,1*255));
+      gradient.setColorAt(1,QColor(maxV,maxV,maxV,hardness*255));
+
+      QBrush brush(gradient);
+      p.setRenderHint(QPainter::Antialiasing, true);
+      if (brushSelected)
+        p.setPen(QPen(brush, radius, Qt::SolidLine, Qt::RoundCap,
+                      Qt::MiterJoin));
+
+      point = QPoint(fi.x(), fi.y());
+
+      if (tilex){
+        point.setX(point.x() % w);
       }
-    }
-
-    if (tiley){
-      if (point.y() + radius >= h){
-        drawAt(QPoint(point.x(),point.y()-h),&p);
-      } else if (point.y() - radius <= 0){
-        drawAt(QPoint(point.x(), point.y()+h), &p);
+      if (tiley){
+        point.setY(point.y() % h);
       }
+
+      if (tilex){
+        if (point.x() + radius >= w){
+          drawAt(QPoint(point.x()-w,point.y()),&p);
+        } else if (point.x() - radius <= 0){
+          drawAt(QPoint(point.x() + w, point.y()), &p);
+        }
+      }
+
+      if (tiley){
+        if (point.y() + radius >= h){
+          drawAt(QPoint(point.x(),point.y()-h),&p);
+        } else if (point.y() - radius <= 0){
+          drawAt(QPoint(point.x(), point.y()+h), &p);
+        }
+      }
+
+      drawAt(point, &p);
+
     }
+    int xmin = point.x()-radius, xmax = point.x()+radius, ymin = point.y()-radius, ymax = point.y()+radius;
 
-    drawAt(point, &p);
+    if (gui->get_height_enabled())
+      m_processor->set_heightmap_overlay(updateOverlay(xmin,xmax, ymin, ymax, m_processor->get_heightmap_overlay(), oldHeight, auxHeight));
+    if (gui->get_parallax_enabled())
+      m_processor->set_parallax_overlay(updateOverlay(xmin,xmax, ymin, ymax, m_processor->get_parallax_overlay(), oldParallax, auxParallax));
+    if (gui->get_specular_enabled())
+      m_processor->set_specular_overlay(updateOverlay(xmin,xmax,ymin,ymax,m_processor->get_specular_overlay(), oldSpecular, auxSpecular));
+    if (gui->get_occlussion_enabled())
+      m_processor->set_occlussion_overlay(updateOverlay(xmin,xmax,ymin,ymax,m_processor->get_occlusion_overlay(), oldOcclussion, auxOcclussion));
 
-  }
-  int xmin = point.x()-radius, xmax = point.x()+radius, ymin = point.y()-radius, ymax = point.y()+radius;
-
-  if (gui->get_height_enabled())
-    m_processor->set_heightmap_overlay(updateOverlay(xmin,xmax, ymin, ymax, m_processor->get_heightmap_overlay(), oldHeight, auxHeight));
-  if (gui->get_parallax_enabled())
-    m_processor->set_parallax_overlay(updateOverlay(xmin,xmax, ymin, ymax, m_processor->get_parallax_overlay(), oldParallax, auxParallax));
-  if (gui->get_specular_enabled())
-    m_processor->set_specular_overlay(updateOverlay(xmin,xmax,ymin,ymax,m_processor->get_specular_overlay(), oldSpecular, auxSpecular));
-  if (gui->get_occlussion_enabled())
-    m_processor->set_occlussion_overlay(updateOverlay(xmin,xmax,ymin,ymax,m_processor->get_occlusion_overlay(), oldOcclussion, auxOcclussion));
-
-  QRect r(QPoint(xmin, ymin),QPoint(xmax, ymax));
-//  QtConcurrent::run(m_processor,&ImageProcessor::calculate_specular);
-//  QtConcurrent::run(m_processor,&ImageProcessor::calculate_parallax);
-//  QtConcurrent::run(m_processor,&ImageProcessor::calculate_occlusion);
-  QtConcurrent::run(m_processor,&ImageProcessor::generate_normal_map,false,false,false,r);
+    QRect r(QPoint(xmin, ymin),QPoint(xmax, ymax));
+    //  QtConcurrent::run(m_processor,&ImageProcessor::calculate_specular);
+    //  QtConcurrent::run(m_processor,&ImageProcessor::calculate_parallax);
+    //  QtConcurrent::run(m_processor,&ImageProcessor::calculate_occlusion);
+    QtConcurrent::run(m_processor,&ImageProcessor::generate_normal_map,false,false,false,r);
   }
 }
 
