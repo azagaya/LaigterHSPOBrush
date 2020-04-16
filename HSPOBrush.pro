@@ -2,11 +2,18 @@ TEMPLATE = lib
 DEFINES += HSPOBRUSH_LIBRARY
 CONFIG       += plugin
 QT           += widgets
-INCLUDEPATH  += ../laigter/
-INCLUDEPATH  += ../laigter/src/
-DESTDIR       = /home/azagaya/.local/share/laigter/plugins/
+
+TARGET = hspobrush
 
 CONFIG += c++11
+
+isEmpty(LAIGTER_SRC){
+  LAIGTER_SRC=../laigter
+}
+
+
+INCLUDEPATH  += $$LAIGTER_SRC/
+INCLUDEPATH  += $$LAIGTER_SRC/src/
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -20,26 +27,42 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-  hsopbrushgui.cpp \
+    hsopbrushgui.cpp \
     hspobrush.cpp \
-    ../laigter/src/image_processor.cpp\
-    ../laigter/src/light_source.cpp\
-    ../laigter/src/sprite.cpp\
-    ../laigter/src/texture.cpp
+    $$LAIGTER_SRC/src/image_processor.cpp\
+    $$LAIGTER_SRC/src/light_source.cpp\
+    $$LAIGTER_SRC/src/sprite.cpp\
+    $$LAIGTER_SRC//src/texture.cpp
+    $$LAIGTER_SRC/src/brush_interface.h
 
 HEADERS += \
   hsopbrushgui.h \
     hspobrush.h \
-    ../laigter/src/image_processor.h \
-    ../laigter/src/light_source.h\
-    ../laigter/src/sprite.h\
-    ../laigter/src/texture.h
+    $$LAIGTER_SRC/src/image_processor.h \
+    $$LAIGTER_SRC/src/light_source.h\
+    $$LAIGTER_SRC/src/sprite.h\
+    $$LAIGTER_SRC/src/texture.h
 
-target.path = /home/azagaya/.local/share/laigter/plugins/
+FORMS += \
+  hsopbrushgui.ui
+
+isEmpty(PREFIX){
+  PREFIX = $$system(echo $HOME)/.local/share/laigter/plugins
+}
+
+target.path = $$PREFIX/
+
+DESTDIR = $$PREFIX
 INSTALLS += target
 
 CONFIG += install_ok  # Do not cargo-cult this!
 uikit: CONFIG += debug_and_release
+
+RESOURCES += \
+  icons.qrc
+
+DISTFILES += \
+  metadata.json
 
 unix{
     CONFIG += link_pkgconfig
@@ -61,11 +84,4 @@ win32: LIBS += C:\opencv-build\install\x64\mingw\bin\libopencv_imgcodecs320.dll
 
 win32: INCLUDEPATH += C:\opencv\build\include
 
-FORMS += \
-  hsopbrushgui.ui
 
-RESOURCES += \
-  icons.qrc
-
-DISTFILES += \
-  metadata.json

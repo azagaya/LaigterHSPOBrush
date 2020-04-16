@@ -1,0 +1,38 @@
+language: cpp
+compiler: gcc
+sudo: require
+dist: xenial
+
+before_install:
+  - sudo add-apt-repository ppa:beineri/opt-qt-5.14.1-xenial -y
+  - sudo apt-get update -qq
+
+install:
+  - sudo apt-get -y install qt514base qt514x11extras qt514tools libgl1-mesa-dev libopencv-dev 
+  - source /opt/qt*/bin/qt*-env.sh
+
+script:
+  - git clone https://github.com/azagaya/laigter.git
+  - qmake CONFIG+=release PREFIX=plugin LAIGTER_SRC=laigter
+  - make -j$(nproc)
+
+before_deploy:
+  # Set up git user name and tag this commit
+  - git config --local user.name "azagaya"
+  - git config --local user.email "azagaya.games@gmail.com"
+  - export TRAVIS_TAG="CI-$(date +'%m-%d-%Y')-BUILD-$TRAVIS_BUILD_NUMBER"
+  - git tag $TRAVIS_TAG
+
+deploy:
+  provider: releases
+  api_key: $GITHUB_TOKEN
+  file: plugin/libnormalbrush.so
+  skip_cleanup: true
+  prerelease: true
+  overwrite: true
+
+branches:
+  except:
+    - # Do not build tags that we create when we upload to GitHub Releases
+    - /^(?i:continuous)/
+
