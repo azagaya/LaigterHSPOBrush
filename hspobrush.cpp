@@ -14,29 +14,40 @@ QImage HSPOBrush::updateOverlay(int xmin, int xmax, int ymin, int ymax, QImage o
   topLeft = QPoint(xmin,ymin);
   botRight = QPoint(xmax,ymax);
 
-  xmin -= radius;
-  ymin -= radius;
-  xmax += radius;
-  ymax += radius;
+  QRect imageRect = m_processor->get_texture()->rect();
+  bool tile_x = m_processor->get_tile_x();
+  bool tile_y = m_processor->get_tile_y();
 
-  ymin = ymin < 0 ? 0 : ymin;
-  ymin = ymin > ov.height() ? ov.height() : ymin;
-  ymax = ymax < 0 ? 0 : ymax;
-  ymax = ymax > ov.height() ? ov.height() : ymax;
-
-  xmin = xmin < 0 ? 0 : xmin;
-  xmin = xmin > ov.width() ? ov.width() : xmin;
-  xmax = xmax < 0 ? 0 : xmax;
-  xmax = xmax > ov.width() ? ov.width() : xmax;
+  int w = m_processor->get_texture()->width();
+  int h = m_processor->get_texture()->height();
 
   for (int x = xmin; x < xmax; x++){
     for (int y =ymin; y < ymax; y++){
-      QColor oldColor = old.pixelColor(x,y);
-      QColor auxColor = aux.pixelColor(x,y);
-      //      auxColor.setAlphaF(auxColor.alphaF()*auxOv.pixelColor(x,y).redF());
+
+      int ix = x;
+      int iy = y;
+
+      if (!imageRect.contains(QPoint(x,y)))
+      {
+        if (!tile_x && !tile_y)
+        {
+          continue;
+        }
+        if (tile_x)
+        {
+          ix = WrapCoordinate(ix, w);
+        }
+        if (tile_y)
+        {
+          iy = WrapCoordinate(iy, h);
+        }
+      }
+
+      QColor oldColor = old.pixelColor(ix,iy);
+      QColor auxColor = aux.pixelColor(ix,iy);
       QColor newColor(0,0,0,0);
 
-      if (auxColor.alphaF() <= 1e-6 || m_processor->get_texture()->pixelColor(x,y).alphaF() == 0){
+      if (auxColor.alphaF() <= 1e-6 || m_processor->get_texture()->pixelColor(ix,iy).alphaF() == 0){
         newColor = oldColor;
       } else {
         float outA = alpha*auxColor.alphaF()+oldColor.alphaF()*(1-alpha*auxColor.alphaF());
@@ -51,21 +62,47 @@ QImage HSPOBrush::updateOverlay(int xmin, int xmax, int ymin, int ymax, QImage o
 
       }
 
-      ov.setPixelColor(x,y,newColor);
+      ov.setPixelColor(ix,iy,newColor);
     }
   }
   return ov;
 }
 
-void HSPOBrush::drawAt(QPoint point, QPainter *p, float alpha_mod, bool invert){
-  QRadialGradient gradient(point, radius);
-  //  if (p->device() == (QPaintDevice *) &auxParallax){
-  //    invert = true;
-  //  } else {
-  //    invert = false;
-  //  }
-  invert = false;
-  if (!invert){
+void HSPOBrush::drawAt(QPoint point, QPainter *p, float alpha_mod, bool tile_x, bool tile_y){
+  int w = p->device()->width();
+  int h = p->device()->height();
+
+  QList <QPoint> pointList;
+
+  if (tile_x)
+  {
+    point.setX(WrapCoordinate(point.x(),w));
+  }
+
+  if (tile_y)
+  {
+    point.setY(WrapCoordinate(point.y(),h));
+  }
+
+  if (tile_x)
+  {
+
+    pointList.append(point - QPoint(w,0));
+    pointList.append(point + QPoint(w,0));
+  }
+
+  if (tile_y)
+  {
+    pointList.append(point - QPoint(0,h));
+    pointList.append(point + QPoint(0,h));
+  }
+
+  pointList.append(point);
+
+  foreach (QPoint point, pointList)
+  {
+    QRadialGradient gradient(point, radius);
+
     gradient.setColorAt(0,QColor(maxV,maxV,maxV,1.0*255));
     gradient.setColorAt(hardness,QColor(maxV,maxV,maxV,1.0*255));
     for (int i=100*(hardness); i<100; i++){
@@ -78,15 +115,15 @@ void HSPOBrush::drawAt(QPoint point, QPainter *p, float alpha_mod, bool invert){
 
     }
     gradient.setColorAt(1,QColor(maxV,maxV,maxV,0.0));
+
+
+    QBrush brush(gradient);
+
+    p->setPen(QPen(brush, radius, Qt::SolidLine, Qt::RoundCap,
+                   Qt::MiterJoin));
+
+    p->drawEllipse(point.x()-radius/2,point.y()-radius/2,radius,radius);
   }
-
-  QBrush brush(gradient);
-
-  p->setPen(QPen(brush, radius, Qt::SolidLine, Qt::RoundCap,
-                 Qt::MiterJoin));
-
-  p->drawEllipse(point.x()-radius/2,point.y()-radius/2,radius,radius);
-
 
 }
 
@@ -98,14 +135,14 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos){
     return;
 
 
-  int w = m_processor->get_texture()->width();
-  int h = m_processor->get_texture()->height();
+  QPoint oldP = WorldToLocal(oldPos);
+  QPoint newP = WorldToLocal(newPos);
 
-  bool tilex = m_processor->get_tile_x();
-  bool tiley = m_processor->get_tile_y();
+  bool tile_x = m_processor->get_tile_x();
+  bool tile_y = m_processor->get_tile_y();
 
-  QPoint in(oldPos);
-  QPoint fi(newPos);
+  QPoint in(oldP);
+  QPoint fi(newP);
 
   int xmin = std::min(in.x(),fi.x());
   int xmax = std::max(in.x(),fi.x());
@@ -147,48 +184,15 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos){
         qreal percent = path.percentAtLength(pos);
         QPoint point = path.pointAtPercent(percent).toPoint();
 
-        if (tilex){
-          point.setX(point.x() % w);
-          xmin = std::min(xmin,point.x());
-          xmax = std::max(xmax,point.x());
-        }
-        if (tiley){
-          point.setY(point.y() % h);
-          ymin = std::min(ymin,point.y());
-          ymax = std::max(ymax,point.y());
-        }
-
-        if (tilex){
-          if (point.x() + radius >= w){
-            drawAt(QPoint(point.x()-w,point.y()),&p);
-            xmax = w;
-            xmin = 0;
-          } else if (point.x() - radius <= 0){
-            drawAt(QPoint(point.x() + w, point.y()), &p);
-            xmax = w;
-            xmin = 0;
-
-          }
-        }
-
-        if (tiley){
-          if (point.y() + radius >= h){
-            drawAt(QPoint(point.x(),point.y()-h),&p);
-            ymax = h;
-            ymin = 0;
-          } else if (point.y() - radius <= 0){
-            drawAt(QPoint(point.x(), point.y()+h), &p);
-            ymax = h;
-            ymin = 0;
-          }
-        }
-
-        drawAt(point,&p);
+        drawAt(point, &p, 1.0, tile_x, tile_y);
         pos += radius/4.0;
       }
 
     }
-
+    xmin -= radius;
+    xmax += radius;
+    ymin -= radius;
+    ymax += radius;
     if (gui->get_height_enabled())
       m_processor->set_heightmap_overlay(updateOverlay(xmin,xmax, ymin, ymax, m_processor->get_heightmap_overlay(), oldHeight, auxHeight));
     if (gui->get_parallax_enabled())
@@ -197,6 +201,7 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos){
       m_processor->set_specular_overlay(updateOverlay(xmin,xmax,ymin,ymax,m_processor->get_specular_overlay(), oldSpecular, auxSpecular));
     if (gui->get_occlussion_enabled())
       m_processor->set_occlussion_overlay(updateOverlay(xmin,xmax,ymin,ymax,m_processor->get_occlusion_overlay(), oldOcclussion, auxOcclussion));
+
   } else {
     //TODO make it work in tiles
     QImage erased(auxHeight.size(),QImage::Format_RGBA8888_Premultiplied);
@@ -246,8 +251,6 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos){
     }
 
   }
-  //}
-  //  }
 
   xmin = std::min(in.x(),fi.x());
   xmax = std::max(in.x(),fi.x());
@@ -258,8 +261,7 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos){
   QRect r(QPoint(xmin-radius,ymin-radius),QPoint(xmax+radius,ymax+radius));
 
   if (gui->get_specular_enabled())
-    m_processor->calculate_specular();
-//    QtConcurrent::run(m_processor,&ImageProcessor::calculate_specular);
+    QtConcurrent::run(m_processor,&ImageProcessor::calculate_specular);
   if (gui->get_parallax_enabled())
     QtConcurrent::run(m_processor,&ImageProcessor::calculate_parallax);
   if(gui->get_occlussion_enabled())
@@ -287,12 +289,10 @@ void HSPOBrush::mousePress(const QPoint &pos){
   auxOcclussion = QImage(oldOcclussion.width(), oldOcclussion.height(), QImage::Format_RGBA8888_Premultiplied);
   auxOcclussion.fill(QColor(0,0,0,0));
 
-  int w = m_processor->get_texture()->width();
-  int h = m_processor->get_texture()->height();
-
   bool tilex = m_processor->get_tile_x();
   bool tiley = m_processor->get_tile_y();
 
+  QPoint newP = WorldToLocal(pos);
 
   if (!gui->get_button_eraser()){
     QList <Overlay> imageList;
@@ -309,7 +309,7 @@ void HSPOBrush::mousePress(const QPoint &pos){
       imageList.append(Overlay(&auxOcclussion,occ,"occlussion"));
     }
 
-    QPoint fi(pos);
+    QPoint fi(newP);
     QPoint point;
     foreach(Overlay overlay, imageList)
 
@@ -330,29 +330,6 @@ void HSPOBrush::mousePress(const QPoint &pos){
                       Qt::MiterJoin));
 
       point = QPoint(fi.x(), fi.y());
-
-      if (tilex){
-        point.setX(point.x() % w);
-      }
-      if (tiley){
-        point.setY(point.y() % h);
-      }
-
-      if (tilex){
-        if (point.x() + radius >= w){
-          drawAt(QPoint(point.x()-w,point.y()),&p);
-        } else if (point.x() - radius <= 0){
-          drawAt(QPoint(point.x() + w, point.y()), &p);
-        }
-      }
-
-      if (tiley){
-        if (point.y() + radius >= h){
-          drawAt(QPoint(point.x(),point.y()-h),&p);
-        } else if (point.y() - radius <= 0){
-          drawAt(QPoint(point.x(), point.y()+h), &p);
-        }
-      }
 
       drawAt(point, &p);
 
@@ -503,4 +480,26 @@ void HSPOBrush::updateBrushSprite(){
 
 QObject * HSPOBrush::getObject(){
   return this;
+}
+
+int HSPOBrush::WrapCoordinate(int coord, int interval)
+{
+  coord %= interval;
+  if (coord < 0){
+    coord += interval;
+  }
+  return coord;
+}
+
+QPoint HSPOBrush::WorldToLocal(QPoint world)
+{
+  int w = m_processor->get_texture()->width();
+  int h = m_processor->get_texture()->height();
+
+  QPoint origin = m_processor->get_position()->toPoint();
+
+  QPoint local = world + QPoint(0.5*w,-0.5*h) - origin;
+  local.setY(-local.y());
+
+  return local;
 }

@@ -34,10 +34,12 @@ class HSPOBrush : public QObject, public BrushInterface
   QIcon getIcon() override;
   QString getName() override;
   QImage getBrushSprite() override;
-  void drawAt(QPoint point, QPainter *p, float alpha_mod = 1.0, bool invert = true);
+  void drawAt(QPoint point, QPainter *p, float alpha_mod = 1.0, bool tile_x = false, bool tile_y = false);
   QImage updateOverlay(int xmin, int xmax, int ymin, int ymax, QImage ov, QImage old, QImage aux);
   void updateBrushSprite();
   QObject * getObject() override;
+  int WrapCoordinate(int coord, int interval);
+  QPoint WorldToLocal(QPoint world);
   signals:
   void selected_changed(BrushInterface *brush);
   void brush_sprite_updated(QImage sprite);
