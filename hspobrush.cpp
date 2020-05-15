@@ -206,16 +206,7 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos){
     //TODO make it work in tiles
     QImage erased(auxHeight.size(),QImage::Format_RGBA8888_Premultiplied);
     erased.fill(QColor(0,0,0,0));
-    QPainter p(&erased);
 
-    QPen pen(QColor(1,1,1,1));
-    pen.setWidth(2*radius);
-    pen.setStyle(Qt::SolidLine);
-    pen.setCapStyle(Qt::RoundCap);
-    pen.setJoinStyle(Qt::MiterJoin);
-    p.setPen(pen);
-    p.setRenderHint(QPainter::Antialiasing, true);
-    p.drawLine(in,fi);
 
     QList <Overlay> imageList;
     if (gui->get_height_enabled()){
@@ -232,13 +223,16 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos){
     }
     foreach(Overlay ov, imageList){
       QImage *overlay = ov.ov;
-      for (int x=0; x < overlay->width(); x++){
-        for (int y=0; y < overlay->height(); y++){
-          if (erased.pixelColor(x,y).alphaF() != 0){
-            overlay->setPixelColor(x,y,QColor(0,0,0,0));
-          }
-        }
-      }
+      QPainter p(overlay);
+      p.setCompositionMode(QPainter::CompositionMode_Source);
+      QPen pen(QColor(0,0,0,0));
+      pen.setWidth(2*radius);
+      pen.setStyle(Qt::SolidLine);
+      pen.setCapStyle(Qt::RoundCap);
+      pen.setJoinStyle(Qt::MiterJoin);
+      p.setPen(pen);
+      p.setRenderHint(QPainter::Antialiasing, true);
+      p.drawLine(in,fi);
       if (ov.type == "height"){
         m_processor->set_heightmap_overlay(*overlay);
       } else if (ov.type == "parallax"){
@@ -293,7 +287,7 @@ void HSPOBrush::mousePress(const QPoint &pos){
   bool tiley = m_processor->get_tile_y();
 
   QPoint newP = WorldToLocal(pos);
-
+  QPoint fi(newP);
   if (!gui->get_button_eraser()){
     QList <Overlay> imageList;
     if (gui->get_height_enabled()){
@@ -309,8 +303,7 @@ void HSPOBrush::mousePress(const QPoint &pos){
       imageList.append(Overlay(&auxOcclussion,occ,"occlussion"));
     }
 
-    QPoint fi(newP);
-    QPoint point;
+
     foreach(Overlay overlay, imageList)
 
     {
@@ -329,28 +322,70 @@ void HSPOBrush::mousePress(const QPoint &pos){
         p.setPen(QPen(brush, radius, Qt::SolidLine, Qt::RoundCap,
                       Qt::MiterJoin));
 
-      point = QPoint(fi.x(), fi.y());
 
-      drawAt(point, &p);
+      drawAt(fi, &p);
 
     }
-    int xmin = point.x()-radius, xmax = point.x()+radius, ymin = point.y()-radius, ymax = point.y()+radius;
 
-    if (gui->get_height_enabled())
-      m_processor->set_heightmap_overlay(updateOverlay(xmin,xmax, ymin, ymax, m_processor->get_heightmap_overlay(), oldHeight, auxHeight));
-    if (gui->get_parallax_enabled())
-      m_processor->set_parallax_overlay(updateOverlay(xmin,xmax, ymin, ymax, m_processor->get_parallax_overlay(), oldParallax, auxParallax));
-    if (gui->get_specular_enabled())
-      m_processor->set_specular_overlay(updateOverlay(xmin,xmax,ymin,ymax,m_processor->get_specular_overlay(), oldSpecular, auxSpecular));
-    if (gui->get_occlussion_enabled())
-      m_processor->set_occlussion_overlay(updateOverlay(xmin,xmax,ymin,ymax,m_processor->get_occlusion_overlay(), oldOcclussion, auxOcclussion));
-
-    QRect r(QPoint(xmin, ymin),QPoint(xmax, ymax));
-    //  QtConcurrent::run(m_processor,&ImageProcessor::calculate_specular);
-    //  QtConcurrent::run(m_processor,&ImageProcessor::calculate_parallax);
-    //  QtConcurrent::run(m_processor,&ImageProcessor::calculate_occlusion);
-    QtConcurrent::run(m_processor,&ImageProcessor::generate_normal_map,false,false,false,r);
   }
+  else
+  {
+    QImage erased(auxHeight.size(),QImage::Format_RGBA8888_Premultiplied);
+    erased.fill(QColor(0,0,0,0));
+
+
+    QList <Overlay> imageList;
+    if (gui->get_height_enabled()){
+      imageList.append(Overlay(&oldHeight,height,"height"));
+    }
+    if (gui->get_parallax_enabled()){
+      imageList.append(Overlay(&oldParallax,parallax,"parallax"));
+    }
+    if (gui->get_specular_enabled()){
+      imageList.append(Overlay(&oldSpecular,spec,"specular"));
+    }
+    if (gui->get_occlussion_enabled()){
+      imageList.append(Overlay(&oldOcclussion,occ,"occlussion"));
+    }
+    foreach(Overlay ov, imageList){
+      QImage *overlay = ov.ov;
+      QPainter p(overlay);
+      p.setCompositionMode(QPainter::CompositionMode_Source);
+      QPen pen(QColor(0,0,0,0));
+      pen.setWidth(2*radius);
+      pen.setStyle(Qt::SolidLine);
+      pen.setCapStyle(Qt::RoundCap);
+      pen.setJoinStyle(Qt::MiterJoin);
+      p.setPen(pen);
+      p.setRenderHint(QPainter::Antialiasing, true);
+      p.drawPoint(fi);
+      if (ov.type == "height"){
+        m_processor->set_heightmap_overlay(*overlay);
+      } else if (ov.type == "parallax"){
+        m_processor->set_parallax_overlay(*overlay);
+      } else if (ov.type == "specular") {
+        m_processor->set_specular_overlay(*overlay);
+      } else if (ov.type == "occlussion"){
+        m_processor->set_occlussion_overlay(*overlay);
+      }
+    }
+  }
+  int xmin = fi.x()-radius, xmax = fi.x()+radius, ymin = fi.y()-radius, ymax = fi.y()+radius;
+
+  if (gui->get_height_enabled())
+    m_processor->set_heightmap_overlay(updateOverlay(xmin,xmax, ymin, ymax, m_processor->get_heightmap_overlay(), oldHeight, auxHeight));
+  if (gui->get_parallax_enabled())
+    m_processor->set_parallax_overlay(updateOverlay(xmin,xmax, ymin, ymax, m_processor->get_parallax_overlay(), oldParallax, auxParallax));
+  if (gui->get_specular_enabled())
+    m_processor->set_specular_overlay(updateOverlay(xmin,xmax,ymin,ymax,m_processor->get_specular_overlay(), oldSpecular, auxSpecular));
+  if (gui->get_occlussion_enabled())
+    m_processor->set_occlussion_overlay(updateOverlay(xmin,xmax,ymin,ymax,m_processor->get_occlusion_overlay(), oldOcclussion, auxOcclussion));
+
+  QRect r(QPoint(xmin, ymin),QPoint(xmax, ymax));
+  QtConcurrent::run(m_processor,&ImageProcessor::calculate_specular);
+  QtConcurrent::run(m_processor,&ImageProcessor::calculate_parallax);
+  QtConcurrent::run(m_processor,&ImageProcessor::calculate_occlusion);
+  QtConcurrent::run(m_processor,&ImageProcessor::generate_normal_map,false,false,false,r);
 }
 
 void HSPOBrush::mouseRelease(const QPoint &pos){

@@ -68,11 +68,6 @@ unix{
     CONFIG += link_pkgconfig
     packagesExist(opencv4){
         PKGCONFIG += opencv4
-        DEFINES += CV_RGBA2GRAY=COLOR_RGBA2GRAY
-        DEFINES += CV_RGB2GRAY=COLOR_RGB2GRAY
-        DEFINES += CV_GRAY2RGB=COLOR_GRAY2RGB
-        DEFINES += CV_GRAY2RGBA=COLOR_GRAY2RGBA
-        DEFINES += CV_DIST_L2=DIST_L2
     } else {
         PKGCONFIG += opencv
     }
