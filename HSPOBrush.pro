@@ -47,7 +47,12 @@ FORMS += \
   hsopbrushgui.ui
 
 isEmpty(PREFIX){
-  PREFIX = $$system(echo $HOME)/.local/share/laigter/plugins
+unix{
+ PREFIX = $$system(echo $HOME)/.local/share/laigter/plugins
+}
+win32{
+ PREFIX = $$system(echo %APPDATA%)/laigter/plugins
+}
 }
 
 target.path = $$PREFIX/
