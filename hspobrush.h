@@ -7,8 +7,8 @@
 #include <brush_interface.h>
 #include <image_processor.h>
 class Overlay {
-  public:
-  Overlay(QImage *o, int c, QString t){
+public:
+  Overlay(QImage *o, int c, QString t) {
     ov = o;
     color = c;
     type = t;
@@ -18,12 +18,12 @@ class Overlay {
   QString type;
 };
 
-class HSPOBrush : public QObject, public BrushInterface
-{
+class HSPOBrush : public QObject, public BrushInterface {
   Q_OBJECT
-  Q_PLUGIN_METADATA(IID "org.azagaya.laigter.plugins.BrushInterface" FILE "metadata.json")
+  Q_PLUGIN_METADATA(IID "org.azagaya.laigter.plugins.BrushInterface" FILE
+                        "metadata.json")
   Q_INTERFACES(BrushInterface)
-  public:
+public:
   void mousePress(const QPoint &pos) override;
   void mouseMove(const QPoint &oldPos, const QPoint &newPos) override;
   void mouseRelease(const QPoint &pos) override;
@@ -34,17 +34,19 @@ class HSPOBrush : public QObject, public BrushInterface
   QIcon getIcon() override;
   QString getName() override;
   QImage getBrushSprite() override;
-  void drawAt(QPoint point, QPainter *p, float alpha_mod = 1.0, bool tile_x = false, bool tile_y = false);
-  QImage updateOverlay(int xmin, int xmax, int ymin, int ymax, QImage ov, QImage old, QImage aux);
+  void drawAt(QPoint point, QPainter *p, float alpha_mod = 1.0,
+              bool tile_x = false, bool tile_y = false);
+  QImage updateOverlay(int xmin, int xmax, int ymin, int ymax, QImage ov,
+                       QImage old, QImage aux);
   void updateBrushSprite();
-  QObject * getObject() override;
+  QObject *getObject() override;
   int WrapCoordinate(int coord, int interval);
   QPoint WorldToLocal(QPoint world);
-  signals:
+signals:
   void selected_changed(BrushInterface *brush);
   void brush_sprite_updated(QImage sprite);
 
-  public slots:
+public slots:
   void set_radius(int r);
   void set_max(int m);
   void set_min(int m);
@@ -58,12 +60,12 @@ class HSPOBrush : public QObject, public BrushInterface
   void set_parallax(int p);
   void set_occlussion(int o);
 
-  private:
+private:
   QImage *m_heightmap, auxHeight, oldHeight;
   QImage *m_specular, auxSpecular, oldSpecular;
   QImage *m_parallax, auxParallax, oldParallax;
   QImage *m_occlussion, auxOcclussion, oldOcclussion;
-  QImage auxOv;
+  QImage auxOv, diffuse;
   HSOPBrushGui *gui;
   QImage brushSprite;
   int radius = 15;
@@ -73,7 +75,8 @@ class HSPOBrush : public QObject, public BrushInterface
   float alpha = 0.5;
   float hardness = 0;
 
-  bool linesSelected = true, brushSelected = true, eraserSelected = false, selected = true;
+  bool linesSelected = true, brushSelected = true, eraserSelected = false,
+       selected = true;
   QString m_name = tr("HSPO Plugin");
 };
 
