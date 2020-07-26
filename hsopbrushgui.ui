@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>218</width>
-    <height>478</height>
+    <width>224</width>
+    <height>567</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,8 +20,7 @@
       <string/>
      </property>
      <property name="icon">
-      <iconset resource="icons.qrc">
-       <normaloff>:/icons/eraser-icon.png</normaloff>:/icons/eraser-icon.png</iconset>
+      <iconset theme="eraser-icon"/>
      </property>
      <property name="checkable">
       <bool>true</bool>
@@ -34,8 +33,7 @@
       <string/>
      </property>
      <property name="icon">
-      <iconset resource="icons.qrc">
-       <normaloff>:/icons/roundBrush.png</normaloff>:/icons/roundBrush.png</iconset>
+      <iconset theme="roundBrush"/>
      </property>
      <property name="checkable">
       <bool>true</bool>
@@ -253,8 +251,7 @@
       <string/>
      </property>
      <property name="icon">
-      <iconset resource="icons.qrc">
-       <normaloff>:/icons/peakBrush.png</normaloff>:/icons/peakBrush.png</iconset>
+      <iconset theme="peakBrush"/>
      </property>
      <property name="checkable">
       <bool>true</bool>
@@ -263,8 +260,6 @@
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="icons.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>
