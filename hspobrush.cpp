@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QIcon>
 #include <QList>
+#include <QPainterPath>
 #include <QRadialGradient>
 #include <QtConcurrent/QtConcurrent>
 #include <algorithm>
