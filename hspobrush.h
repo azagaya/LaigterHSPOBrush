@@ -27,6 +27,7 @@ public:
   void mousePress(const QPoint &pos) override;
   void mouseMove(const QPoint &oldPos, const QPoint &newPos) override;
   void mouseRelease(const QPoint &pos) override;
+  void setPressure(float pressure) override;
   bool get_selected() override;
   void set_selected(bool s) override;
   QWidget *loadGUI(QWidget *parent = nullptr) override;
@@ -48,6 +49,7 @@ signals:
 
 public slots:
   void set_radius(int r);
+  void set_base_radius(int r);
   void set_max(int m);
   void set_min(int m);
   void set_mix(int m);
@@ -68,7 +70,8 @@ private:
   QImage auxOv, diffuse;
   HSOPBrushGui *gui;
   QImage brushSprite;
-  int radius = 15;
+  int radius = 15, base_radius = 15;
+  float pressure = 1.0;
   int maxV = 128, minV = 0, height = 128, spec = 255, occ = 0, parallax = 128;
   ImageProcessor **processorPtr;
   ImageProcessor *m_processor;

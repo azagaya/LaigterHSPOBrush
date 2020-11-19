@@ -421,7 +421,7 @@ QWidget *HSPOBrush::loadGUI(QWidget *parent) {
           SLOT(set_lineSelected(bool)));
   connect(this, SIGNAL(brush_sprite_updated(QImage)), gui,
           SLOT(brush_sprite_updated(QImage)));
-  connect(gui, SIGNAL(size_changed(int)), this, SLOT(set_radius(int)));
+  connect(gui, SIGNAL(size_changed(int)), this, SLOT(set_base_radius(int)));
   connect(gui, SIGNAL(hardness_changed(int)), this, SLOT(set_hardness(int)));
 
   connect(gui, SIGNAL(height_changed(int)), this, SLOT(set_height(int)));
@@ -445,6 +445,11 @@ void HSPOBrush::set_parallax(int p) { parallax = p; }
 void HSPOBrush::set_specular(int s) { spec = s; }
 
 void HSPOBrush::set_occlussion(int o) { occ = o; }
+
+void HSPOBrush::set_base_radius(int r) {
+  base_radius = r;
+  set_radius(r);
+}
 
 void HSPOBrush::set_radius(int r) {
   radius = r;
@@ -543,4 +548,11 @@ QPoint HSPOBrush::WorldToLocal(QPoint world) {
   local.setY(-local.y());
 
   return local;
+}
+
+void HSPOBrush::setPressure(float pressure) {
+  this->pressure = pressure;
+  float d = 0.2;
+  int new_radius = base_radius * ((2 - 2 * d) * pressure + d);
+  set_radius(new_radius);
 }
