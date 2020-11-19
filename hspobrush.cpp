@@ -264,14 +264,15 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos) {
           QPoint(xmax + radius, ymax + radius));
 
   if (gui->get_specular_enabled())
-    QtConcurrent::run(m_processor, &ImageProcessor::calculate_specular);
+    m_processor->specular_counter = 1;
   if (gui->get_parallax_enabled())
-    QtConcurrent::run(m_processor, &ImageProcessor::calculate_parallax);
+    m_processor->parallax_counter = 1;
   if (gui->get_occlussion_enabled())
-    QtConcurrent::run(m_processor, &ImageProcessor::calculate_occlusion);
-  if (gui->get_height_enabled())
-    QtConcurrent::run(m_processor, &ImageProcessor::generate_normal_map, false,
-                      false, false, r);
+    m_processor->occlussion_counter = 1;
+  if (gui->get_height_enabled()) {
+    m_processor->normal_counter = 1;
+    m_processor->rect_requested = m_processor->rect_requested.united(r);
+  }
 }
 
 void HSPOBrush::mousePress(const QPoint &pos) {
@@ -399,11 +400,16 @@ void HSPOBrush::mousePress(const QPoint &pos) {
         oldOcclussion, auxOcclussion));
 
   QRect r(QPoint(xmin, ymin), QPoint(xmax, ymax));
-  QtConcurrent::run(m_processor, &ImageProcessor::calculate_specular);
-  QtConcurrent::run(m_processor, &ImageProcessor::calculate_parallax);
-  QtConcurrent::run(m_processor, &ImageProcessor::calculate_occlusion);
-  QtConcurrent::run(m_processor, &ImageProcessor::generate_normal_map, false,
-                    false, false, r);
+  if (gui->get_specular_enabled())
+    m_processor->specular_counter = 1;
+  if (gui->get_parallax_enabled())
+    m_processor->parallax_counter = 1;
+  if (gui->get_occlussion_enabled())
+    m_processor->occlussion_counter = 1;
+  if (gui->get_height_enabled()) {
+    m_processor->normal_counter = 1;
+    m_processor->rect_requested = m_processor->rect_requested.united(r);
+  }
 }
 
 void HSPOBrush::mouseRelease(const QPoint &pos) {}
