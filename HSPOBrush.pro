@@ -5,7 +5,7 @@ QT           += widgets
 
 TARGET = hspobrush
 
-CONFIG += c++11
+CONFIG += c++17
 
 isEmpty(LAIGTER_SRC){
   LAIGTER_SRC=../laigter
@@ -28,20 +28,13 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     hsopbrushgui.cpp \
-    hspobrush.cpp \
-    $$LAIGTER_SRC/src/image_processor.cpp\
-    $$LAIGTER_SRC/src/light_source.cpp\
-    $$LAIGTER_SRC/src/sprite.cpp\
-    $$LAIGTER_SRC//src/texture.cpp
-    $$LAIGTER_SRC/src/brush_interface.h
+    hspobrush.cpp
 
 HEADERS += \
-  hsopbrushgui.h \
+    hsopbrushgui.h \
     hspobrush.h \
-    $$LAIGTER_SRC/src/image_processor.h \
-    $$LAIGTER_SRC/src/light_source.h\
-    $$LAIGTER_SRC/src/sprite.h\
-    $$LAIGTER_SRC/src/texture.h
+    $$LAIGTER_SRC/src/brush_interface.h \
+    $$LAIGTER_SRC/src/processor_interface.h
 
 FORMS += \
   hsopbrushgui.ui

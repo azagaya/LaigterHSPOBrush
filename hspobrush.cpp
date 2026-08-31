@@ -2,7 +2,9 @@
 #include <QDebug>
 #include <QIcon>
 #include <QList>
+#include <QPainter>
 #include <QPainterPath>
+#include <QPen>
 #include <QRadialGradient>
 #include <QtConcurrent/QtConcurrent>
 #include <algorithm>
@@ -15,7 +17,13 @@ QImage HSPOBrush::updateOverlay(int xmin, int xmax, int ymin, int ymax,
   topLeft = QPoint(xmin, ymin);
   botRight = QPoint(xmax, ymax);
 
-  QRect imageRect = diffuse.rect();
+  /* overlays start empty and can still be a different size than the sprite,
+   * and every one of them gets read below */
+  QRect imageRect = diffuse.rect()
+                        .intersected(ov.rect())
+                        .intersected(old.rect())
+                        .intersected(aux.rect());
+
   bool tile_x = m_processor->get_tile_x();
   bool tile_y = m_processor->get_tile_y();
 
@@ -38,18 +46,25 @@ QImage HSPOBrush::updateOverlay(int xmin, int xmax, int ymin, int ymax,
         if (tile_y) {
           iy = WrapCoordinate(iy, h);
         }
+        // tiling a single axis leaves the other one outside the image
+        if (!imageRect.contains(QPoint(ix, iy))) {
+          continue;
+        }
       }
 
       QColor oldColor = old.pixelColor(ix, iy);
       QColor auxColor = aux.pixelColor(ix, iy);
       QColor newColor(0, 0, 0, 0);
 
-      if (auxColor.alphaF() <= 1e-6 ||
+      float outA = alpha * auxColor.alphaF() +
+                   oldColor.alphaF() * (1 - alpha * auxColor.alphaF());
+
+      /* outA at zero used to divide below and give nan, which turns into a
+       * garbage int and an invalid QColor */
+      if (auxColor.alphaF() <= 1e-6 || outA <= 1e-6 ||
           diffuse.pixelColor(ix, iy).alphaF() == 0) {
         newColor = oldColor;
       } else {
-        float outA = alpha * auxColor.alphaF() +
-                     oldColor.alphaF() * (1 - alpha * auxColor.alphaF());
         int r = auxColor.red() * alpha * auxColor.alphaF() / outA +
                 oldColor.red() * oldColor.alphaF() *
                     (1 - alpha * auxColor.alphaF()) / outA;
@@ -135,7 +150,6 @@ void HSPOBrush::drawAt(QPoint point, QPainter *p, float alpha_mod, bool tile_x,
 
 void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos) {
 
-  m_processor = *processorPtr;
 
   if (!selected)
     return;
@@ -264,19 +278,18 @@ void HSPOBrush::mouseMove(const QPoint &oldPos, const QPoint &newPos) {
           QPoint(xmax + radius, ymax + radius));
 
   if (gui->get_specular_enabled())
-    m_processor->specular_counter = 1;
+    m_processor->set_specular_counter(1);
   if (gui->get_parallax_enabled())
-    m_processor->parallax_counter = 1;
+    m_processor->set_parallax_counter(1);
   if (gui->get_occlussion_enabled())
-    m_processor->occlussion_counter = 1;
+    m_processor->set_occlussion_counter(1);
   if (gui->get_height_enabled()) {
-    m_processor->normal_counter = 1;
-    m_processor->rect_requested = m_processor->rect_requested.united(r);
+    m_processor->set_normal_counter(1);
+    m_processor->request_rect(r);
   }
 }
 
 void HSPOBrush::mousePress(const QPoint &pos) {
-  m_processor = *processorPtr;
 
   oldHeight = m_processor->get_heightmap_overlay();
   auxHeight = QImage(oldHeight.width(), oldHeight.height(),
@@ -401,23 +414,25 @@ void HSPOBrush::mousePress(const QPoint &pos) {
 
   QRect r(QPoint(xmin, ymin), QPoint(xmax, ymax));
   if (gui->get_specular_enabled())
-    m_processor->specular_counter = 1;
+    m_processor->set_specular_counter(1);
   if (gui->get_parallax_enabled())
-    m_processor->parallax_counter = 1;
+    m_processor->set_parallax_counter(1);
   if (gui->get_occlussion_enabled())
-    m_processor->occlussion_counter = 1;
+    m_processor->set_occlussion_counter(1);
   if (gui->get_height_enabled()) {
-    m_processor->normal_counter = 1;
-    m_processor->rect_requested = m_processor->rect_requested.united(r);
+    m_processor->set_normal_counter(1);
+    m_processor->request_rect(r);
   }
 }
 
 void HSPOBrush::mouseRelease(const QPoint &pos) {}
 
-void HSPOBrush::setProcessor(ImageProcessor **processor) {
+void HSPOBrush::setProcessor(ProcessorInterface *processor) {
+  if (!processor)
+    return;
 
-  processorPtr = processor;
-  (*processor)->get_current_frame()->get_image(TextureTypes::Diffuse, &diffuse);
+  m_processor = processor;
+  m_processor->get_current_diffuse(&diffuse);
 }
 
 QWidget *HSPOBrush::loadGUI(QWidget *parent) {

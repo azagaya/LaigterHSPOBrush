@@ -5,7 +5,6 @@
 
 #include <QWidget>
 #include <brush_interface.h>
-#include <image_processor.h>
 class Overlay {
 public:
   Overlay(QImage *o, int c, QString t) {
@@ -31,7 +30,7 @@ public:
   bool get_selected() override;
   void set_selected(bool s) override;
   QWidget *loadGUI(QWidget *parent = nullptr) override;
-  void setProcessor(ImageProcessor **processor) override;
+  void setProcessor(ProcessorInterface *processor) override;
   QString getIcon() override;
   QString getName() override;
   QImage getBrushSprite() override;
@@ -73,8 +72,7 @@ private:
   int radius = 15, base_radius = 15;
   float pressure = 1.0;
   int maxV = 128, minV = 0, height = 128, spec = 255, occ = 0, parallax = 128;
-  ImageProcessor **processorPtr;
-  ImageProcessor *m_processor;
+  ProcessorInterface *m_processor = nullptr;
   float alpha = 0.5;
   float hardness = 0;
 
